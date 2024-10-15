@@ -37,6 +37,7 @@ export default function App() {
   return (
     <View>
       {circleName ? <Text>{circleName}</Text> : <Text>Loading...</Text>}
+      <Text>Text</Text>
     </View>
   );
 }
