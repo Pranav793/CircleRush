@@ -1,42 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/firebase';  // Import the Firestore instance
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import AuthScreen from './AuthScreen';
+import CreateCircleScreen from './CreateCircleScreen';
+
+const Stack = createStackNavigator();
 
 export default function App() {
-  const [circleName, setCircleName] = useState('');
-
-  useEffect(() => {
-    const fetchCircleName = async () => {
-      try {
-        // Reference the document in the "Circles" collection by its ID
-        // console.log(db);
-        const docRef = doc(db, 'Circles', 'mdYW7syRmeLnYuR47nO7');
-        // console.log(docRef);
-        // console.log(docRef);
-        console.log("bruh");
-        const docSnap = await getDoc(docRef);
-        console.log("getting the data:");
-        console.log(docSnap);
-
-        // Check if the document exists and fetch the "name" field
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setCircleName(data.name);  // Assuming the document has a "name" field
-        } else {
-          console.log('No such document!');
-        }
-      } catch (error) {
-        console.error('Error fetching document: ', error);
-      }
-    };
-
-    fetchCircleName();
-  }, []);
-
   return (
-    <View>
-      {circleName ? <Text>{circleName}</Text> : <Text>Loading...</Text>}
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Auth">
+        {/* Auth screen */}
+        <Stack.Screen name="Auth" component={AuthScreen} />
+        {/* Create Circle screen */}
+        <Stack.Screen name="CreateCircle" component={CreateCircleScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
