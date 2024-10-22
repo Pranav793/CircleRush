@@ -1,20 +1,15 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import AuthScreen from './AuthScreen';
-import CreateCircleScreen from './CreateCircleScreen';
+import { Text, View } from "react-native";
 
-const Stack = createStackNavigator();
-
-export default function App() {
+export default function Index() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Auth">
-        {/* Auth screen */}
-        <Stack.Screen name="Auth" component={AuthScreen} />
-        {/* Create Circle screen */}
-        <Stack.Screen name="CreateCircle" component={CreateCircleScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Text>Edit app/index.tsx to edit this screen.</Text>
+    </View>
   );
 }

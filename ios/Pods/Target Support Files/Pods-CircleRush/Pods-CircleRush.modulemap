@@ -1,4 +1,4 @@
-framework module Pods_CircleRush {
+module Pods_CircleRush {
   umbrella header "Pods-CircleRush-umbrella.h"
 
   export *

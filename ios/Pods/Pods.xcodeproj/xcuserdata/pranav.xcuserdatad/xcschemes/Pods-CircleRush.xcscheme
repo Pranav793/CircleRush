@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "460E68BE3B781EB97DA073E92CDB92A8"
-               BuildableName = "Pods_CircleRush.framework"
+               BuildableName = "libPods-CircleRush.a"
                BlueprintName = "Pods-CircleRush"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
