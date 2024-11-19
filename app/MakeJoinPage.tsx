@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
-
+import { useNavigation } from '@react-navigation/native';
 // Icon component for reusability
 const Icon = ({ source }) => (
     <Image source={source} style={styles.icon} />
@@ -13,24 +13,25 @@ const CircleButton = ({ buttonText, buttonStyle, onPress }) => (
     </TouchableOpacity>
 );
 
-const CircleOptionsScreen = () => {
+const CircleOptionsScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <View style={styles.frame}>
-                {/* Container for Make a Circle */}
                 <View style={styles.iconButtonContainer}>
                     <Icon source={require('../assets/images/pencil-icon.png')} />
                     <CircleButton
                         buttonText="Make a Circle"
                         buttonStyle={styles.makeButton}
+                        onPress={() => navigation.navigate('Make_1')}
+
                     />
                 </View>
-                {/* Container for Join a Circle */}
                 <View style={styles.iconButtonContainer}>
                     <Icon source={require('../assets/images/Users-icon.png')} />
                     <CircleButton
                         buttonText="Join a Circle"
                         buttonStyle={styles.joinButton}
+                        onPress={() => {/* navigate somewhere else */}}
                     />
                 </View>
             </View>
