@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "387238791973",
+    "project_id": "circlerush-1cb6f",
+    "storage_bucket": "circlerush-1cb6f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:387238791973:android:c38a9157f14649266ea8cc",
+        "android_client_info": {
+          "package_name": "com.circlerush.circlerush"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "387238791973-l2tg0re5q5uafvuus4scojip4h1uk3jk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrzQ8cIfd7IwoG9aeo4vp7pylxglj0YQE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "387238791973-l2tg0re5q5uafvuus4scojip4h1uk3jk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "387238791973-31ok49lk1h63m0nma29k7l0bba3itu9p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.circlerush.circlerush"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
