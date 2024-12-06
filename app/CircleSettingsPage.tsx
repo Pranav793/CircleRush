@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 10,
     backgroundColor: "#FF6B6B",
-    borderRadius: 8,
+    borderRadius: 25,
     alignItems: "center",
   },
   leaveButtonText: {
