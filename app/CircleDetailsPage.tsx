@@ -231,11 +231,16 @@ export default function CircleDetailsPage({ route, navigation }) {
             source={require('../assets/images/backarrow.png')} // Replace with your image file path
           />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.settingsContainer} onPress={() => navigation.navigate("CircleSettingsPage", { circleId })}>
-          <Image
-            source={require('../assets/images/settings.png')} // Replace with your image file path
-          />
+      <TouchableOpacity 
+        style={styles.settingsContainer} 
+        onPress={() => navigation.navigate("CircleSettingsPage", { circleId })}
+      >
+        <Image
+          source={require('../assets/images/settings.png')} // Replace with your image file path
+          style={styles.settingsImage} // Add a style to control the image size
+        />
       </TouchableOpacity>
+
     </View>
   );
 }
@@ -430,11 +435,17 @@ const styles = StyleSheet.create({
   },
   settingsContainer: {
     position: 'absolute',
-    top: 25,
-    left: 285,
-    width: 100,
-    height: 100,
+    top: 29,
+    left: 325,
+    width: 75, // Adjusted size of the container
+    height: 105, // Adjusted size of the container
     alignItems: 'center',
     justifyContent: 'center',
   },
+  settingsImage: {
+    width: 30, // Adjusted width of the image
+    height: 30, // Adjusted height of the image
+    resizeMode: 'contain', 
+  },
+  
 });
