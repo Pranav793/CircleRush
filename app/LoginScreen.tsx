@@ -57,17 +57,6 @@ export default function LoginScreen() {
                     <Text style={styles.circleTextSmall}>Circle</Text>
                 </View>
 
-                {/* Google Sign-In Button */}
-                <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-                    <View style={styles.buttonContent}>
-                        <Image
-                            source={require('../assets/images/google-icon.png')} // Google icon image
-                            style={styles.googleIcon}
-                        />
-                        <Text style={styles.buttonText}>Sign in with Google</Text>
-                    </View>
-                </TouchableOpacity>
-
                 {/* Email Input */}
                 <View style={[styles.inputContainer, { top: 500 }]}>
                     <Text style={styles.label}>Email</Text>
