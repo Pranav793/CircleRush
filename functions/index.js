@@ -33,7 +33,6 @@ const functions = require('firebase-functions');
 
 exports.helloWorld = onCall(() => {
   logger.info("Hello logs!", { structuredData: true });
-  console.log("SHITTTTT");
 });
 
 
@@ -45,7 +44,6 @@ exports.helloWorld = onCall(() => {
 
 
 exports.checkCircleCompletion = onSchedule("every 5 minutes", async () => {
-  console.log("RUN");
   const now = new Date();
 
   // Query circles where the completion time has passed
