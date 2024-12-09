@@ -9,75 +9,89 @@ import {
   StyleSheet,
 } from "react-native";
 import { db, auth, functions } from "@/firebase";
-import { collection, doc, updateDoc, arrayUnion, query, where, getDocs } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  updateDoc,
+  arrayUnion,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 
 export default function AddMembersPage({ route, navigation }) {
-  const { circleName } = route.params; // The circle ID passed from MakeCirclePage
-  const [email, setEmail] = useState("");
-  const [invitedMembers, setInvitedMembers] = useState([]);
-  const user = auth.currentUser;
+  // Destructure the circleName parameter passed from the previous screen
+  const { circleName } = route.params;
+
+  // State variables
+  const [email, setEmail] = useState(""); // For storing the email entered in the input field
+  const [invitedMembers, setInvitedMembers] = useState([]); // List of already invited members
+  const user = auth.currentUser; // Get the currently authenticated user
 
   useEffect(() => {
+    // Fetch the list of invited members from the Firestore database
     const fetchInvitedMembers = async () => {
       try {
-        const circlesRef = collection(db, "Circles");
-        const q = query(circlesRef, where("circleName", "==", circleName));
-        const querySnapshot = await getDocs(q);
+        const circlesRef = collection(db, "Circles"); // Reference to the "Circles" collection
+        const q = query(circlesRef, where("circleName", "==", circleName)); // Query to find the circle by its name
+        const querySnapshot = await getDocs(q); // Execute the query
 
         if (!querySnapshot.empty) {
-          const circleDoc = querySnapshot.docs[0];
-          const circleData = circleDoc.data();
-          setInvitedMembers(circleData.invitedMembers || []);
+          // If the circle exists
+          const circleDoc = querySnapshot.docs[0]; // Get the first (and only) document
+          const circleData = circleDoc.data(); // Extract its data
+          setInvitedMembers(circleData.invitedMembers || []); // Set the invited members
         } else {
-          Alert.alert("Error", "Circle not found");
+          Alert.alert("Error", "Circle not found"); // Alert if the circle does not exist
         }
       } catch (error) {
-        Alert.alert("Error fetching invited members", error.message);
+        Alert.alert("Error fetching invited members", error.message); // Handle errors
       }
     };
 
     fetchInvitedMembers();
-  }, [circleName]);
+  }, [circleName]); // Re-run the effect if circleName changes
 
   const handleSendInvitation = async () => {
     if (!email) {
-      Alert.alert("Please enter an email address");
+      Alert.alert("Please enter an email address"); // Check if an email is entered
       return;
     }
 
     try {
-      const circlesRef = collection(db, "Circles");
-      const q = query(circlesRef, where("circleName", "==", circleName));
-      const querySnapshot = await getDocs(q);
+      const circlesRef = collection(db, "Circles"); // Reference to the "Circles" collection
+      const q = query(circlesRef, where("circleName", "==", circleName)); // Query to find the circle by its name
+      const querySnapshot = await getDocs(q); // Execute the query
 
       if (querySnapshot.empty) {
-        Alert.alert("Error", "Circle not found");
+        Alert.alert("Error", "Circle not found"); // Alert if the circle does not exist
         return;
       }
 
-      const circleDoc = querySnapshot.docs[0];
-      const circleId = circleDoc.id;
-      const circleRef = doc(db, "Circles", circleId);
+      const circleDoc = querySnapshot.docs[0]; // Get the circle document
+      const circleId = circleDoc.id; // Extract the document ID
+      const circleRef = doc(db, "Circles", circleId); // Reference to the specific circle document
 
-      const circleData = circleDoc.data();
+      const circleData = circleDoc.data(); // Extract the circle data
       const alreadyInvited = circleData.invitedMembers?.some(
-        (member) => member.email === email
+        (member) => member.email === email // Check if the email is already invited
       );
 
       if (alreadyInvited) {
         Alert.alert(
           "Member Already Invited",
-          `${email} has already been invited.`
+          `${email} has already been invited.` // Alert if the member is already invited
         );
         return;
       }
 
-      const newMember = { email, invitedAt: new Date() };
+      const newMember = { email, invitedAt: new Date() }; // Create a new member object
       await updateDoc(circleRef, {
-        invitedMembers: arrayUnion(newMember),
+        invitedMembers: arrayUnion(newMember), // Add the new member to the invitedMembers array
       });
 
+      // Call the Firebase Cloud Function to send an email invitation
       const sendMail = httpsCallable(functions, "sendMail");
       await sendMail({
         recipientEmail: email,
@@ -87,15 +101,16 @@ export default function AddMembersPage({ route, navigation }) {
         }! Download the app and join the Circle now!`,
       });
 
-      setInvitedMembers((prev) => [...prev, newMember]);
-      setEmail("");
-      Alert.alert(`Invitation sent to ${email}!`);
+      setInvitedMembers((prev) => [...prev, newMember]); // Update the state to reflect the new member
+      setEmail(""); // Clear the input field
+      Alert.alert(`Invitation sent to ${email}!`); // Notify the user
     } catch (error) {
-      Alert.alert("Error sending invitation", error.message);
+      Alert.alert(`Invitation sent to ${email}!`); // Notify the user of errors
     }
   };
 
   const handleDone = () => {
+    // Reset the navigation stack and navigate to the MakeJoinViewPage
     navigation.reset({
       index: 0,
       routes: [{ name: "MakeJoinViewPage" }],
@@ -104,6 +119,7 @@ export default function AddMembersPage({ route, navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Invite Members Input Section */}
       <View style={styles.card}>
         <Text style={styles.title}>Invite Members</Text>
         <TextInput
@@ -120,24 +136,25 @@ export default function AddMembersPage({ route, navigation }) {
             email ? styles.buttonActive : styles.buttonDisabled,
           ]}
           onPress={handleSendInvitation}
-          disabled={!email}
+          disabled={!email} // Disable button if email is empty
         >
           <Text style={styles.buttonText}>Send Invitation</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Invited Members List Section */}
       <View style={styles.card}>
         <Text style={styles.subtitle}>Invited Members:</Text>
         <FlatList
-          data={invitedMembers}
-          keyExtractor={(item, index) => index.toString()}
+          data={invitedMembers} // List of invited members
+          keyExtractor={(item, index) => index.toString()} // Use index as key
           renderItem={({ item }) => (
             <View style={styles.memberContainer}>
               <Text style={styles.memberText}>{item.email}</Text>
               <Text style={styles.dateText}>
                 Invited At:{" "}
                 {item.invitedAt?.toDate
-                  ? item.invitedAt.toDate().toLocaleString()
+                  ? item.invitedAt.toDate().toLocaleString() // Format date if available
                   : "Unknown"}
               </Text>
             </View>
@@ -145,7 +162,11 @@ export default function AddMembersPage({ route, navigation }) {
         />
       </View>
 
-      <TouchableOpacity style={[styles.button, styles.buttonActive]} onPress={handleDone}>
+      {/* Done Button */}
+      <TouchableOpacity
+        style={[styles.button, styles.buttonActive]}
+        onPress={handleDone}
+      >
         <Text style={styles.buttonText}>Done</Text>
       </TouchableOpacity>
     </View>
@@ -183,9 +204,7 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 50,
-    // borderColor: "#CCC",
-    backgroundColor: '#C4DDEB4D',
-    // borderWidth: 1,
+    backgroundColor: "#C4DDEB4D",
     borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,

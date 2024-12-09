@@ -10,7 +10,7 @@ import {
   Image,
   StyleSheet,
 } from "react-native";
-import { db, auth } from "@/firebase";
+import { db, auth } from "@/firebase"; // Firebase configuration for database and authentication
 import {
   query,
   collection,
@@ -20,45 +20,51 @@ import {
   doc,
   updateDoc,
   arrayUnion,
-} from "firebase/firestore";
-import { useNavigation } from "@react-navigation/native";
+} from "firebase/firestore"; // Firestore methods
+import { useNavigation } from "@react-navigation/native"; // Hook to navigate between screens
 
 export default function MakeCirclePage() {
-  const navigation = useNavigation();
-  const [circleName, setCircleName] = useState("");
+  const navigation = useNavigation(); // Navigation object for routing
+  const [circleName, setCircleName] = useState(""); // State to store the circle name entered by the user
 
-
+  // Function to handle joining a circle
   const handleJoinCircle = async () => {
+    // Validate that a circle name is entered
     if (!circleName) {
       Alert.alert("A Circle Name is required");
       return;
     }
 
     try {
-      const user = auth.currentUser;
+      const user = auth.currentUser; // Get the current authenticated user
       if (!user) {
-        Alert.alert("User not authenticated!");
+        Alert.alert("User not authenticated!"); // Ensure the user is logged in
         return;
       }
 
+      // User data to be added to the circle
       const userData = {
-        userName: user.displayName || user.email,
-        adminStatus: false, // Adjust as needed
-        score: 0, // Initialize user score
+        userName: user.displayName || user.email, // Use the user's display name or email
+        adminStatus: false, // Set admin status to false (default behavior)
+        score: 0, // Initialize the user's score in the circle
       };
 
+      // Reference the "Circles" collection in Firestore
       const circlesRef = collection(db, "Circles");
+      // Query to check if a circle with the entered name exists
       const q = query(circlesRef, where("circleName", "==", circleName));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q); // Execute the query
 
+      // If no circle is found with the entered name
       if (querySnapshot.empty) {
         Alert.alert("Error", "No Circle with this name exists!");
         return;
       }
 
       const circleDoc = querySnapshot.docs[0]; // Assuming circle names are unique
-      const circleData = circleDoc.data();
+      const circleData = circleDoc.data(); // Get circle data
 
+      // Check if the user is already a part of the circle
       const userExists = circleData.users?.some(
         (u) => u.userName === (user.displayName || user.email)
       );
@@ -68,42 +74,46 @@ export default function MakeCirclePage() {
         return;
       }
 
-      const circleRef = doc(db, "Circles", circleDoc.id);
+      const circleRef = doc(db, "Circles", circleDoc.id); // Reference to the specific circle document
 
+      // Add the user to the "users" field in the circle document
       await updateDoc(circleRef, {
-        users: arrayUnion(userData),
+        users: arrayUnion(userData), // Use `arrayUnion` to add the user without overwriting the array
       });
 
-      Alert.alert(`You have joined the circle "${circleName}"!`);
+      Alert.alert(`You have joined the circle "${circleName}"!`); // Notify the user of success
     } catch (error) {
-      Alert.alert("Error joining Circle", error.message);
+      Alert.alert("Error joining Circle", error.message); // Handle errors
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Card to contain the input and join button */}
       <View style={styles.card}>
         <Text style={styles.title}>Join a Circle</Text>
         <TextInput
-          placeholder="Circle Name"
-          value={circleName}
-          onChangeText={setCircleName}
+          placeholder="Circle Name" // Placeholder text for the input field
+          value={circleName} // Bind input value to state
+          onChangeText={setCircleName} // Update state when text changes
           style={styles.input}
         />
         <TouchableOpacity
           style={[
             styles.button,
-            circleName ? styles.buttonActive : styles.buttonDisabled,
+            circleName ? styles.buttonActive : styles.buttonDisabled, // Change button style based on input
           ]}
-          onPress={handleJoinCircle}
-          disabled={!circleName}
+          onPress={handleJoinCircle} // Trigger the join circle function
+          disabled={!circleName} // Disable the button if no circle name is entered
         >
           <Text style={styles.buttonText}>Join</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Button to navigate back */}
       <TouchableOpacity
         style={styles.buttonContainer}
-        onPress={() => navigation.goBack()}
+        onPress={() => navigation.goBack()} // Go back to the previous screen
       >
         <Image
           source={require("../assets/images/backarrow.png")} // Replace with your image file path
@@ -113,79 +123,70 @@ export default function MakeCirclePage() {
   );
 }
 
+// Styles for the component
 const styles = StyleSheet.create({
-  //container: { flex: 1, padding: 20 },
-  header: { fontSize: 24, marginBottom: 20, textAlign: "center" },
-  list: { alignItems: "center" },
-  circleContainer: { margin: 10, alignItems: "center" },
-  circleIcon: { width: 80, height: 80 },
-  circleText: { marginTop: 5, fontSize: 16 },
-
   container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#C4DDEB",
+    flex: 1, // Use all available space
+    justifyContent: "center", // Center content vertically
+    alignItems: "center", // Center content horizontally
+    backgroundColor: "#C4DDEB", // Light blue background
   },
   card: {
-    width: "85%",
-    height: "25%",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 10,
-    top: -20,
+    width: "85%", // Card takes up 85% of the width
+    height: "25%", // Card height is 25% of the screen
+    justifyContent: "center", // Center content vertically
+    backgroundColor: "#FFFFFF", // White background
+    borderRadius: 20, // Rounded corners
+    padding: 20, // Inner padding
+    shadowColor: "#000", // Shadow color
+    shadowOffset: { width: 0, height: 5 }, // Shadow offset
+    shadowOpacity: 0.1, // Shadow opacity
+    shadowRadius: 5, // Shadow blur radius
+    elevation: 10, // Shadow for Android
+    top: -20, // Slightly move up from center
   },
   title: {
-    fontSize: 30,
-    fontWeight: "400",
-    marginBottom: 30,
-    textAlign: "center",
+    fontSize: 30, // Large font size
+    fontWeight: "400", // Normal weight
+    marginBottom: 30, // Space below title
+    textAlign: "center", // Center text alignment
   },
   input: {
-    height: 40,
-    // borderColor: '#CCC',
-    backgroundColor: "#C4DDEB4D",
-    // borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 25,
-    paddingHorizontal: 15,
+    height: 40, // Height of the input field
+    backgroundColor: "#C4DDEB4D", // Light blue background
+    borderRadius: 10, // Rounded corners
+    marginBottom: 25, // Space below the input
+    paddingHorizontal: 15, // Horizontal padding inside input
   },
   button: {
-    height: 45,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    height: 45, // Button height
+    borderRadius: 10, // Rounded corners
+    justifyContent: "center", // Center text vertically
+    alignItems: "center", // Center text horizontally
     elevation: 4, // Shadow for Android
     shadowColor: "#000", // Shadow for iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 2 }, // Shadow offset
+    shadowOpacity: 0.25, // Shadow opacity
+    shadowRadius: 3.84, // Shadow blur radius
   },
   buttonActive: {
-    backgroundColor: "#95C0D7",
+    backgroundColor: "#95C0D7", // Active button color
   },
   buttonDisabled: {
-    backgroundColor: "#D3D3D3",
+    backgroundColor: "#D3D3D3", // Disabled button color
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFF",
+    fontSize: 16, // Text size
+    fontWeight: "600", // Bold text
+    color: "#FFF", // White text color
   },
-
   buttonContainer: {
-    position: "absolute",
-    top: 30,
-    left: 10,
-    width: 100,
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
+    position: "absolute", // Positioned relative to the screen
+    top: 30, // Position from the top
+    left: 10, // Position from the left
+    width: 100, // Width of the button
+    height: 100, // Height of the button
+    alignItems: "center", // Center horizontally
+    justifyContent: "center", // Center vertically
   },
 });

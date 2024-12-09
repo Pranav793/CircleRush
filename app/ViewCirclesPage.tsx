@@ -5,7 +5,7 @@ import { db, auth } from '@/firebase';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 export default function ViewCirclesPage() {
-  const [circles, setCircles] = useState([]);
+  const [circles, setCircles] = useState([]); 
   const navigation = useNavigation();
 
   const fetchUserCircles = useCallback(async () => {

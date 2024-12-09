@@ -8,67 +8,63 @@ import {
   Alert,
   TouchableOpacity,
 } from "react-native";
-import { PieChart } from "react-native-svg-charts"; // Import PieChart
-import { doc, collection, getDoc, getDocs, updateDoc } from "firebase/firestore";
-import { db, auth, functions } from "@/firebase";
-import { useFocusEffect } from "@react-navigation/native";
-import { httpsCallable } from "firebase/functions";
+import { PieChart } from "react-native-svg-charts"; // For visualizing score distribution
+import { doc, collection, getDoc, getDocs, updateDoc } from "firebase/firestore"; // Firebase Firestore methods
+import { db, auth, functions } from "@/firebase"; // Firebase configuration
+import { useFocusEffect } from "@react-navigation/native"; // Hook to run effects when screen is focused
+import { httpsCallable } from "firebase/functions"; // To call Firebase cloud functions
 
 export default function CircleDetailsPage({ route, navigation }) {
-  console.log("route", route);
+  // Retrieve the circle ID passed as a parameter
   const { circleId } = route.params;
-  const [circleData, setCircleData] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const user = auth.currentUser;
 
-  // Function to generate a consistent color for each user
+  // State variables
+  const [circleData, setCircleData] = useState(null); // Store circle data
+  const [tasks, setTasks] = useState([]); // Store tasks in the circle
+  const [isAdmin, setIsAdmin] = useState(false); // Whether the current user is an admin
+  const user = auth.currentUser; // Get the currently authenticated user
+
+  // Generate a consistent color for each user
   const generateColor = (identifier) => {
     let hash = 0;
-
     for (let i = 0; i < identifier.length; i++) {
       hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
     }
-
-    // Map the hash to the 175-200 range for RGB values
-    const r = (hash % 56) + 150; // Ensure values are between 175–200
-    const g = ((hash >> 8) % 56) + 150; // Use bit-shifting to vary values
+    const r = (hash % 56) + 150; // Ensure RGB values are in the range 150–200
+    const g = ((hash >> 8) % 56) + 150;
     const b = ((hash >> 16) % 56) + 150;
-
-    // Convert to hex format
-    const toHex = (value) => value.toString(16).padStart(2, "0");
-
+    const toHex = (value) => value.toString(16).padStart(2, "0"); // Convert to hexadecimal
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   };
 
+  // Fetch circle data from Firestore
   const fetchCircleData = useCallback(async () => {
     const docRef = doc(db, "Circles", circleId);
     const docSnap = await getDoc(docRef);
-
     if (docSnap.exists()) {
       const data = docSnap.data();
       setCircleData(data);
 
+      // Determine if the user is an admin
       const userEntry = data.users.find(
         (u) => u.userName === (user?.displayName || user?.email)
       );
-
       setIsAdmin(userEntry?.adminStatus === true);
     }
   }, [circleId, user]);
 
+  // Fetch tasks from the "Tasks" subcollection
   const fetchTasks = useCallback(async () => {
     const tasksRef = collection(db, "Circles", circleId, "Tasks");
     const tasksSnap = await getDocs(tasksRef);
-
     const tasksData = tasksSnap.docs.map((doc) => ({
       ...doc.data(),
       taskId: doc.id,
     }));
-
     setTasks(tasksData);
   }, [circleId]);
 
+  // Fetch data when the screen is focused
   useFocusEffect(
     useCallback(() => {
       fetchCircleData();
@@ -76,10 +72,12 @@ export default function CircleDetailsPage({ route, navigation }) {
     }, [fetchCircleData, fetchTasks])
   );
 
+  // Handle marking a task as complete
   const handleCompleteTask = async (taskId) => {
     const taskRef = doc(db, "Circles", circleId, "Tasks", taskId);
     const task = tasks.find((t) => t.taskId === taskId);
 
+    // Ensure the task is valid and the user has permission to complete it
     if (
       !task ||
       task.completed ||
@@ -89,8 +87,10 @@ export default function CircleDetailsPage({ route, navigation }) {
       return;
     }
 
+    // Mark the task as completed
     await updateDoc(taskRef, { completed: true, completedAt: new Date() });
 
+    // Update the user's score in Firestore
     const updatedUsers = circleData.users.map((u) => {
       if (u.userName === (user?.displayName || user?.email)) {
         return { ...u, score: (u.score || 0) + task.points };
@@ -100,6 +100,7 @@ export default function CircleDetailsPage({ route, navigation }) {
     const circleRef = doc(db, "Circles", circleId);
     await updateDoc(circleRef, { users: updatedUsers });
 
+    // Update the local state
     setTasks((prevTasks) =>
       prevTasks.map((t) =>
         t.taskId === taskId ? { ...t, completed: true } : t
@@ -110,6 +111,7 @@ export default function CircleDetailsPage({ route, navigation }) {
       users: updatedUsers,
     }));
 
+    // Notify users about task completion using a cloud function
     const notifyOnTaskCompletion = httpsCallable(
       functions,
       "notifyOnTaskCompletion"
@@ -122,25 +124,29 @@ export default function CircleDetailsPage({ route, navigation }) {
     Alert.alert("Task marked as completed!");
   };
 
-  if (!circleData) return <Text>Loading...</Text>;
+  if (!circleData) return <Text>Loading...</Text>; // Show loading text if data isn't loaded
 
+  // Sort users by score in descending order
   const sortedUsers = [...(circleData.users || [])].sort(
     (a, b) => (b.score || 0) - (a.score || 0)
   );
 
-  // Prepare data for PieChart
-  const pieData = sortedUsers.map((user, index) => ({
+  // Prepare data for the PieChart
+  const pieData = sortedUsers.map((user) => ({
     key: user.userName,
     value: user.score || 0,
     svg: {
-      fill: generateColor(user.userName), // Use consistent color for PieChart
+      fill: generateColor(user.userName),
     },
     arc: { outerRadius: "100%", innerRadius: "0%" },
   }));
 
   return (
     <View style={styles.container}>
+      {/* Circle Header */}
       <Text style={styles.header}>{circleData.circleName}</Text>
+
+      {/* Circle Information */}
       <View style={[styles.infoBox, { backgroundColor: `${circleData.colorCode}80` }]}>
         <Text style={styles.infoText}>
           Duration: {circleData.duration} day(s)
@@ -153,14 +159,13 @@ export default function CircleDetailsPage({ route, navigation }) {
         </Text>
       </View>
 
-      
-      {/* Add Pie Chart Section */}
+      {/* Pie Chart for Score Distribution */}
       <Text style={styles.subHeader}>Score Distribution</Text>
       <View style={styles.chartContainer}>
         <PieChart style={styles.pieChart} data={pieData} />
       </View>
 
-      {/* Users List */}
+      {/* List of Users */}
       <Text style={styles.subHeader2}>Users</Text>
       <FlatList
         data={sortedUsers}
@@ -169,7 +174,7 @@ export default function CircleDetailsPage({ route, navigation }) {
           <View
             style={[
               styles.userContainer,
-              { backgroundColor: generateColor(item.userName) }, // Use consistent color for user background
+              { backgroundColor: generateColor(item.userName) },
             ]}
           >
             <Text style={styles.userName}>{item.userName}</Text>
@@ -180,6 +185,7 @@ export default function CircleDetailsPage({ route, navigation }) {
         style={styles.userList}
       />
 
+      {/* List of Tasks */}
       <Text style={styles.subHeader3}>Tasks</Text>
       <FlatList
         data={tasks}
@@ -220,21 +226,30 @@ export default function CircleDetailsPage({ route, navigation }) {
         keyExtractor={(item) => item.taskId}
       />
 
-      <TouchableOpacity 
-        style={styles.addTaskButton} 
+      {/* Add Task Button */}
+      <TouchableOpacity
+        style={styles.addTaskButton}
         onPress={() => navigation.navigate("AddTaskPage", { circleId })}
-        >
-          <Text style={styles.addTaskButtonText}>Add Task</Text>
+      >
+        <Text style={styles.addTaskButtonText}>Add Task</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.buttonContainer} onPress={() => navigation.navigate('ViewCirclesPage')}>
-          <Image
-            source={require('../assets/images/backarrow.png')} // Replace with your image file path
-          />
+
+      {/* Navigation Buttons */}
+      <TouchableOpacity
+        style={styles.buttonContainer}
+        onPress={() => navigation.navigate("ViewCirclesPage")}
+      >
+        <Image
+          source={require("../assets/images/backarrow.png")}
+        />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.settingsContainer} onPress={() => navigation.navigate("CircleSettingsPage", { circleId })}>
-          <Image
-            source={require('../assets/images/settings.png')} // Replace with your image file path
-          />
+      <TouchableOpacity
+        style={styles.settingsContainer}
+        onPress={() => navigation.navigate("CircleSettingsPage", { circleId })}
+      >
+        <Image
+          source={require("../assets/images/settings.png")}
+        />
       </TouchableOpacity>
     </View>
   );

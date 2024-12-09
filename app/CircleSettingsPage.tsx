@@ -15,60 +15,66 @@ import {
   getDocs,
   deleteDoc,
   updateDoc,
-} from "firebase/firestore";
-import { db, auth, functions } from "@/firebase";
-import { httpsCallable } from "firebase/functions";
+} from "firebase/firestore"; // Firestore methods for interacting with the database
+import { db, auth, functions } from "@/firebase"; // Firebase configuration
+import { httpsCallable } from "firebase/functions"; // To call Firebase Cloud Functions
 
 export default function CircleSettingsPage({ route, navigation }) {
+  // Retrieve circle ID from navigation route params
   const { circleId } = route.params;
-  const [circleData, setCircleData] = useState(null);
+
+  // State variables
+  const [circleData, setCircleData] = useState(null); // Store circle data
   const [userNotifications, setUserNotifications] = useState({
-    taskDeadline: false,
-    circleUpdates: false,
+    taskDeadline: false, // Notification setting for task deadlines
+    circleUpdates: false, // Notification setting for circle updates
   });
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // Check if the current user is an admin
+  const [isCompleted, setIsCompleted] = useState(false); // Circle status (completed or not)
 
-  const user = auth.currentUser;
+  const user = auth.currentUser; // Get the currently authenticated user
 
-  // Fetch Circle Data
+  // Fetch circle data on component mount
   useEffect(() => {
     const fetchCircleData = async () => {
       try {
+        // Reference the circle document in Firestore
         const docRef = doc(db, "Circles", circleId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setCircleData(data);
-          setIsCompleted(data?.status === "completed");
+          setCircleData(data); // Set circle data in state
+          setIsCompleted(data?.status === "completed"); // Update circle status
 
+          // Find the current user's entry in the circle
           const userEntry = data.users.find(
             (u) => u.userName === (user?.displayName || user?.email)
           );
 
           if (userEntry) {
-            setIsAdmin(userEntry.adminStatus);
-            setUserNotifications(userEntry.notifications || userNotifications);
+            setIsAdmin(userEntry.adminStatus); // Update admin status
+            setUserNotifications(userEntry.notifications || userNotifications); // Set user notifications
           } else {
             Alert.alert("Error", "User not found in this circle.");
-            navigation.goBack();
+            navigation.goBack(); // Navigate back if user is not in the circle
           }
         } else {
           Alert.alert(
             "Circle not found",
             "The circle data could not be retrieved."
           );
-          navigation.goBack();
+          navigation.goBack(); // Navigate back if circle not found
         }
       } catch (error) {
-        Alert.alert("Error fetching circle data", error.message);
+        Alert.alert("Error fetching circle data", error.message); // Handle errors
       }
     };
 
     fetchCircleData();
   }, [circleId, user, navigation]);
 
+  // Assign admin to another user
   const handleAssignAdmin = async (userName) => {
     if (!isAdmin) {
       Alert.alert("Unauthorized", "Only admins can assign other admins.");
@@ -85,6 +91,7 @@ export default function CircleSettingsPage({ route, navigation }) {
           style: "default",
           onPress: async () => {
             try {
+              // Update the user's admin status in the circle data
               const updatedUsers = circleData.users.map((u) => {
                 if (u.userName === userName) {
                   return { ...u, adminStatus: true };
@@ -92,9 +99,11 @@ export default function CircleSettingsPage({ route, navigation }) {
                 return u;
               });
 
+              // Update the circle document in Firestore
               const circleRef = doc(db, "Circles", circleId);
               await updateDoc(circleRef, { users: updatedUsers });
 
+              // Update local state
               setCircleData((prevData) => ({
                 ...prevData,
                 users: updatedUsers,
@@ -110,7 +119,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     );
   };
 
-  // Update Notification Setting
+  // Toggle notification settings
   const handleToggleNotification = async (type) => {
     try {
       const updatedNotifications = {
@@ -118,8 +127,9 @@ export default function CircleSettingsPage({ route, navigation }) {
         [type]: !userNotifications[type],
       };
 
-      setUserNotifications(updatedNotifications);
+      setUserNotifications(updatedNotifications); // Update state
 
+      // Update the user's notification settings in the circle data
       const updatedUsers = circleData.users.map((u) => {
         if (u.userName === (user?.displayName || user?.email)) {
           return {
@@ -130,7 +140,7 @@ export default function CircleSettingsPage({ route, navigation }) {
         return u;
       });
 
-      // Update Firestore
+      // Update the circle document in Firestore
       const circleRef = doc(db, "Circles", circleId);
       await updateDoc(circleRef, { users: updatedUsers });
 
@@ -145,6 +155,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     }
   };
 
+  // Remove a user from the circle
   const handleDeleteUser = async (userName) => {
     if (!isAdmin) {
       Alert.alert("Unauthorized", "Only admins can remove users.");
@@ -161,13 +172,16 @@ export default function CircleSettingsPage({ route, navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
+              // Filter out the user to remove
               const updatedUsers = circleData.users.filter(
                 (u) => u.userName !== userName
               );
 
+              // Update the circle document in Firestore
               const circleRef = doc(db, "Circles", circleId);
               await updateDoc(circleRef, { users: updatedUsers });
 
+              // Update local state
               setCircleData((prevData) => ({
                 ...prevData,
                 users: updatedUsers,
@@ -183,7 +197,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     );
   };
 
-  // Reset Circle
+  // Reset the circle
   const handleResetCircle = async () => {
     if (!isAdmin) {
       Alert.alert("Unauthorized", "Only admins can reset the circle.");
@@ -191,11 +205,13 @@ export default function CircleSettingsPage({ route, navigation }) {
     }
 
     try {
+      // Calculate new completion time based on circle duration
       const newCompletionTime = new Date();
       newCompletionTime.setDate(
         newCompletionTime.getDate() + (circleData.duration || 0)
       );
 
+      // Update the circle status in Firestore
       const circleRef = doc(db, "Circles", circleId);
       await updateDoc(circleRef, {
         status: "active",
@@ -209,6 +225,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     }
   };
 
+  // Leave the circle
   const handleLeaveCircle = async () => {
     Alert.alert("Leave Circle", "Are you sure you want to leave this circle?", [
       { text: "Cancel", style: "cancel" },
@@ -217,10 +234,12 @@ export default function CircleSettingsPage({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
+            // Filter out the current user from the circle
             const updatedUsers = circleData.users.filter(
               (u) => u.userName !== (user?.displayName || user?.email)
             );
 
+            // Ensure another admin exists if the current user is the only admin
             if (
               isAdmin &&
               updatedUsers.some((u) => u.adminStatus === true) === false
@@ -232,6 +251,7 @@ export default function CircleSettingsPage({ route, navigation }) {
               return;
             }
 
+            // Update the circle document in Firestore
             const circleRef = doc(db, "Circles", circleId);
             await updateDoc(circleRef, { users: updatedUsers });
 
@@ -248,7 +268,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     ]);
   };
 
-  // Delete Circle
+  // Delete the circle
   const handleDeleteCircle = async () => {
     if (!isAdmin) {
       Alert.alert("Unauthorized", "Only admins can delete the circle.");
@@ -265,17 +285,17 @@ export default function CircleSettingsPage({ route, navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
-              // Reference to the Tasks subcollection
+              // Reference the tasks subcollection
               const tasksRef = collection(db, "Circles", circleId, "Tasks");
               const tasksSnap = await getDocs(tasksRef);
 
-              // Delete each task document in the subcollection
+              // Delete all task documents in the subcollection
               const deleteTaskPromises = tasksSnap.docs.map((doc) =>
                 deleteDoc(doc.ref)
               );
               await Promise.all(deleteTaskPromises);
 
-              // Delete the Circle document
+              // Delete the circle document
               const circleRef = doc(db, "Circles", circleId);
               await deleteDoc(circleRef);
 
@@ -293,6 +313,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     );
   };
 
+  // Render the UI when circle data is available
   if (!circleData) {
     return (
       <View style={styles.loadingContainer}>
@@ -303,12 +324,16 @@ export default function CircleSettingsPage({ route, navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Circle Settings Header */}
       <Text style={styles.header}>Circle Settings</Text>
+
+      {/* Display Circle Info */}
       <Text style={styles.infoText}>Circle ID: {circleId}</Text>
       <Text style={styles.infoText}>
         Status: {isCompleted ? "Completed" : "Active"}
       </Text>
 
+      {/* Notifications Section */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Notifications</Text>
         <View style={styles.settingRow}>
@@ -327,6 +352,7 @@ export default function CircleSettingsPage({ route, navigation }) {
         </View>
       </View>
 
+      {/* Users Section */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Users in Circle</Text>
         <FlatList
@@ -335,6 +361,8 @@ export default function CircleSettingsPage({ route, navigation }) {
           renderItem={({ item }) => (
             <View style={styles.userContainer}>
               <Text style={styles.userName}>{item.userName}</Text>
+
+              {/* Show Assign Admin Button if User is Not Admin */}
               {isAdmin && !item.adminStatus && (
                 <TouchableOpacity
                   onPress={() => handleAssignAdmin(item.userName)}
@@ -343,6 +371,7 @@ export default function CircleSettingsPage({ route, navigation }) {
                 </TouchableOpacity>
               )}
 
+              {/* Show Remove User Button if Admin */}
               {isAdmin && (
                 <TouchableOpacity
                   onPress={() => handleDeleteUser(item.userName)}
@@ -356,6 +385,7 @@ export default function CircleSettingsPage({ route, navigation }) {
         />
       </View>
 
+      {/* Invite Members Button for Admin */}
       {isAdmin && (
         <TouchableOpacity
           style={styles.inviteButton}
@@ -368,6 +398,8 @@ export default function CircleSettingsPage({ route, navigation }) {
           <Text style={styles.inviteButtonText}>Invite Members</Text>
         </TouchableOpacity>
       )}
+
+      {/* Reset Circle Button if Completed */}
       {isAdmin && isCompleted && (
         <TouchableOpacity
           style={styles.resetButton}
@@ -377,10 +409,12 @@ export default function CircleSettingsPage({ route, navigation }) {
         </TouchableOpacity>
       )}
 
+      {/* Leave Circle Button */}
       <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveCircle}>
         <Text style={styles.leaveButtonText}>Leave Circle</Text>
       </TouchableOpacity>
 
+      {/* Delete Circle Button for Admin */}
       {isAdmin && (
         <TouchableOpacity
           style={styles.deleteButton}
@@ -392,6 +426,7 @@ export default function CircleSettingsPage({ route, navigation }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#f3f4f6" },
